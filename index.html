@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>Treino PRO</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --text-main: #f8fafc;
+            --text-sec: #94a3b8;
+            --border: #334155;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 12px; }
+        .app-container { max-width: 500px; margin: 0 auto; }
+        
+        /* --- TELAS DE SOBREPOSIÇÃO --- */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s ease; }
+        .overlay.oculto { opacity: 0; pointer-events: none; }
+        
+        .modal-card { background-color: var(--card); padding: 35px 20px; border-radius: 16px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 85%; max-width: 320px; }
+        .modal-card h1 { font-size: 32px; margin: 0 0 5px 0; font-weight: 700; }
+        .modal-card h1 span { color: var(--accent); }
+        .modal-card p { font-size: 14px; color: var(--text-sec); margin-bottom: 30px; font-weight: 500; }
+        
+        .modal-video-card { background-color: var(--card); padding: 20px; border-radius: 16px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 50px rgba(0,0,0,0.9); width: 95%; max-width: 450px; }
+        .modal-video-card h2 { font-size: 16px; margin: 0 0 15px 0; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; }
+
+        .btn-secundario { background: transparent; color: var(--text-sec); border: 1px solid var(--border); margin-top: 15px; box-shadow: none; font-size: 12px; cursor: pointer; padding: 12px; border-radius: 8px; width: 100%; transition: background 0.2s; text-transform: uppercase; font-weight: bold; }
+        .btn-secundario:active { background: rgba(255,255,255,0.05); }
+        
+        /* --- INTERFACE PRINCIPAL --- */
+        .header { text-align: center; margin-bottom: 12px; }
+        .header h1 { font-size: 22px; margin: 0; font-weight: 700; letter-spacing: -0.5px; }
+        .header h1 span { color: var(--accent); }
+        
+        .card { background-color: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .card-title { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        
+        .status-panel { display: flex; background-color: rgba(0,0,0,0.25); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 12px; overflow: hidden; }
+        .status-box { flex: 1; padding: 12px 8px; text-align: center; }
+        .status-box:first-child { border-right: 1px solid var(--border); }
+        .status-label { font-size: 11px; font-weight: 600; color: var(--text-sec); text-transform: uppercase; margin-bottom: 4px; }
+        .status-value { font-size: 24px; font-weight: 700; color: var(--accent); font-family: monospace; }
+        .status-value.time { color: var(--text-main); }
+        .status-value.pausado { color: var(--accent-yellow); animation: piscar 2s infinite; }
+        
+        @keyframes piscar { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .input-group { margin-bottom: 12px; }
+        .row { display: flex; gap: 8px; align-items: flex-end; }
+        .row .input-group { flex: 1; margin-bottom: 0; }
+        label { display: block; font-size: 12px; font-weight: 500; color: var(--text-sec); margin-bottom: 4px; }
+        select, input { width: 100%; padding: 10px; background-color: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 14px; box-sizing: border-box; appearance: none; }
+        select:focus, input:focus { outline: none; border-color: var(--accent); }
+        select option:disabled { color: #475569; font-style: italic; background-color: rgba(0,0,0,0.2); }
+        input[readonly] { background-color: rgba(0, 0, 0, 0.2); color: var(--accent); font-weight: 700; text-align: center; border-color: var(--border); }
+
+        .btn-play-ex { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue); border-radius: 8px; height: 41px; width: 45px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; padding: 0; flex-shrink: 0; transition: transform 0.1s; }
+        .btn-play-ex:active { transform: scale(0.9); }
+
+        .serie-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border); transition: all 0.3s ease; }
+        .serie-row.concluida { opacity: 0.6; border-color: var(--accent); background: rgba(16, 185, 129, 0.05); }
+        .serie-label { font-size: 12px; font-weight: 700; color: var(--text-main); width: 55px; text-transform: uppercase; }
+        .serie-row input { flex: 1; margin: 0; padding: 10px; font-size: 14px; text-align: center; }
+        .btn-check { background: var(--accent); color: #fff; border: none; border-radius: 8px; width: 42px; height: 42px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; padding: 0; margin-top: 0; }
+        .btn-check:active { transform: scale(0.90); }
+        .btn-done { background: transparent; color: var(--accent); width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
+
+        button { width: 100%; padding: 10px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 13px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; transition: transform 0.1s; }
+        button:active { transform: scale(0.98); }
+        .btn-start { background: linear-gradient(135deg, var(--accent-blue), #2563eb); margin-top: 0; }
+        .btn-stop { background: linear-gradient(135deg, var(--accent-red), #dc2626); margin-top: 0; }
+        .btn-pause { background: linear-gradient(135deg, var(--accent-yellow), #d97706); margin-top: 8px; }
+        .btn-resume { background: linear-gradient(135deg, #10b981, #059669); margin-top: 8px; }
+        .btn-next-ex { background: linear-gradient(135deg, #475569, #334155); margin-top: 10px; font-size: 12px; letter-spacing: 0.5px; border: 1px solid var(--border); }
+        
+        canvas { background-color: var(--bg); border-radius: 8px; padding: 8px; margin-top: 8px; width: 100%; max-height: 220px; border: 1px solid var(--border); }
+        #mensagem { text-align: center; font-size: 12px; font-weight: 600; margin-top: 10px; min-height: 15px; }
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAY BLOQUEIO INICIAL -->
+    <div id="telaBloqueio" class="overlay">
+        <div class="modal-card">
+            <h1>Treino<span>PRO</span></h1>
+            <p>Foco total rumo aos 90 kg.</p>
+            <button class="btn-start" onclick="iniciarPeloBloqueio()">INICIAR TREINO</button>
+            <button class="btn-secundario" onclick="desbloquearApenasVisualizacao()">Apenas Ver Histórico</button>
+        </div>
+    </div>
+
+    <!-- OVERLAY VÍDEO EXERCÍCIO (REPRODUTOR EMBUTIDO) -->
+    <div id="telaVideo" class="overlay oculto" onclick="fecharVideo(event)">
+        <div class="modal-video-card" onclick="event.stopPropagation()">
+            <h2 id="tituloVideo">Nome do Exercício</h2>
+            <div id="containerMedia" style="min-height: 220px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <!-- O VÍDEO APARECERÁ AQUI DENTRO -->
+            </div>
+            <button class="btn-secundario" style="border-color:var(--accent); color:var(--accent);" onclick="fecharVideo(null)">FECHAR VÍDEO</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="header">
+            <h1>Treino<span>PRO</span></h1>
+        </div>
+
+        <div class="card" style="padding-bottom: 12px;">
+            <div class="status-panel">
+                <div class="status-box">
+                    <div class="status-label">Tempo Ativo</div>
+                    <div class="status-value time" id="tempoDecorrido">00:00:00</div>
+                </div>
+                <div class="status-box">
+                    <div class="status-label">Gasto Calórico</div>
+                    <div class="status-value" id="caloriasSessao">0.0<span style="font-size:12px; color:var(--text-sec); margin-left:2px;">kcal</span></div>
+                </div>
+            </div>
+            
+            <button id="btnCronometro" class="btn-start" onclick="iniciarTreino()">INICIAR TREINO</button>
+            <button id="btnPausar" class="btn-pause" style="display: none;" onclick="pausarRetomarTreino()">PAUSAR TREINO</button>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Registar Exercício</h2>
+            
+            <div class="row" style="margin-bottom: 12px;">
+                <div class="input-group">
+                    <label>Data</label>
+                    <input type="text" id="dataTreino" readonly>
+                </div>
+                <div class="input-group" style="flex: 1.5;">
+                    <label>Treino</label>
+                    <select id="treino">
+                        <option value="A">A (Peito/Ombro)</option>
+                        <option value="B">B (Costas/Bíceps)</option>
+                        <option value="C">C (Pernas)</option>
+                        <option value="A-2">A-2 (Peito/Ombro/Tríc)</option>
+                        <option value="C-2">C-2 (Isquio/Glúteos)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Seleção de Exercício + Botão Play -->
+            <div class="row" style="margin-bottom: 15px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>Exercício Atual</label>
+                    <select id="exercicio"></select>
+                </div>
+                <button class="btn-play-ex" onclick="abrirVideo()">▶</button>
+            </div>
+
+            <div id="container-series"></div>
+            <button class="btn-next-ex" onclick="finalizarExercicio()">Concluir Exercício e Avançar ➔</button>
+            <div id="mensagem"></div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Evolução de Cargas</h2>
+            <div class="input-group" style="margin-bottom: 12px;">
+                <select id="exercicioGrafico"></select>
+            </div>
+            <canvas id="graficoProgresso"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DE DADOS DE VÍDEOS (IDs DO YOUTUBE) ---
+        const bancoVideosExercicios = {
+            "Supino inclinado": "TIMRYQKVvDk",
+            "Crusifixo maquina": "FzCnfD0gOXo",
+            "Supino halter inclinado": "rCPwrZkrVVQ",
+            "Supino maquina": "bKSvckCwvh4",
+            "Crossover": "pdMWt71MPlw",
+            "Crusifixo inverso": "wjlX-5DTjBQ",
+            "Elevação frontal corda": "WxIObyc8Ddk",
+            "Elevação lateral": "IwWvZ0rlNXs",
+            "Elevação lateral polia": "3vbYw9xklBc",
+            "Tríceps barra polia": "9cmeOVHOjck",
+            "Tríceps corda": "7le1JRUUagM",
+            "Desenvolvimento": "eufDL9MmF8A",
+            
+            "Remada curvada": "TfxJMertfsw",
+            "Remada maquina": "QyvIEdEHzHc",
+            "Cavalinho": "T_lUbPfCf6Y",
+            "Puxada pronada": "_d99A6p-doE",
+            "Puxada triangulo": "dTxh2JjwzDQ",
+            "Remada alta": "tm0IywBhIYM",
+            "Rosca direta": "Q8TqfD8E7BU",
+            "Rosca Direta com Halteres": "c__3LAiXYOk",
+            "Bíceps scott": "IOP_evjFaxQ",
+            "Hand Grip": "62NtcJMPLKw",
+            
+            "Cadeira abdutora": "e2gmqTG1OgQ",
+            "Cadeira adutora": "Wf602gn_9zU",
+            "Elevação pelvica": "ptK0azwOXwM",
+            "Cadeira extensora": "el3oHblB5DM",
+            "Agachamento": "zgk71dUUt0Y",
+            "Agachamento Hack": "5Ix3fjf4w9o",
+            "Leg 45°": "waAxlYvtCcI",
+            "Mesa flexora": "2-ULaRrQa7c",
+            "Cadeira flexora": "Zss6E3VU6X0",
+            "Stiff": "u1E3_u2gJYE",
+            "Panturilha solear": "qP9GavDpYmw",
+            "Panturilha gemeos": "824pMjvGXgc"
+        };
+
+        // --- SISTEMA EMBUTIDO DE VÍDEO ---
+        function abrirVideo() {
+            const selectEx = document.getElementById("exercicio");
+            if(selectEx.options.length === 0 || !selectEx.value) return;
+            
+            let nomeReal = selectEx.value.replace(" ✓ (Concluído)", "");
+            document.getElementById("tituloVideo").textContent = nomeReal;
+            
+            const container = document.getElementById("containerMedia");
+            document.getElementById("telaVideo").classList.remove("oculto");
+            
+            const videoId = bancoVideosExercicios[nomeReal];
+            if (!videoId) {
+                const pesquisa = encodeURIComponent(nomeReal + " como fazer");
+                container.innerHTML = `
+                    <a href="https://www.youtube.com/results?search_query=${pesquisa}" target="_blank" rel="noopener"
+                       style="color: var(--accent); font-weight: bold;">Procurar vídeo no YouTube ➔</a>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <iframe width="100%" height="250" 
+                        src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&rel=0" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen
+                        style="border-radius: 8px; border: 1px solid var(--border); background: #000;">
+                </iframe>
+            `;
+        }
+
+        function fecharVideo(event) {
+            if (!event || event.target.id === 'telaVideo') {
+                document.getElementById("telaVideo").classList.add("oculto");
+                document.getElementById("containerMedia").innerHTML = "";
+            }
+        }
+
+        // --- FUNÇÕES DA TELA DE BLOQUEIO ---
+        function iniciarPeloBloqueio() {
+            document.getElementById('telaBloqueio').classList.add('oculto');
+            if (estadoTreino === 'parado') iniciarTreino();
+        }
+
+        function desbloquearApenasVisualizacao() {
+            document.getElementById('telaBloqueio').classList.add('oculto');
+        }
+
+        // --- ESTADO GLOBAL DO TREINO ---
+        let intervaloCronometro = null;
+        let tempoInicio = parseInt(localStorage.getItem('inicioTreinoApp')) || 0;
+        let tempoAcumulado = parseInt(localStorage.getItem('tempoAcumuladoApp')) || 0;
+        let estadoTreino = localStorage.getItem('estadoTreinoApp') || 'parado'; 
+        let caloriasMecanicas = parseFloat(localStorage.getItem('caloriasMecanicasApp')) || 0;
+        let exerciciosConcluidos = JSON.parse(localStorage.getItem('exerciciosConcluidosApp')) || [];
+
+        function salvarEstado() {
+            localStorage.setItem('estadoTreinoApp', estadoTreino);
+            localStorage.setItem('inicioTreinoApp', tempoInicio);
+            localStorage.setItem('tempoAcumuladoApp', tempoAcumulado);
+            localStorage.setItem('caloriasMecanicasApp', caloriasMecanicas);
+            localStorage.setItem('exerciciosConcluidosApp', JSON.stringify(exerciciosConcluidos));
+        }
+
+        function formatarTempo(ms) {
+            let s = Math.floor(ms / 1000);
+            return `${String(Math.floor(s / 3600)).padStart(2,'0')}:${String(Math.floor((s % 3600) / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+        }
+
+        function atualizarCronometro() {
+            let decorrido = tempoAcumulado;
+            if (estadoTreino === 'rodando' && tempoInicio > 0) {
+                decorrido += Date.now() - tempoInicio;
+            }
+            
+            document.getElementById('tempoDecorrido').textContent = formatarTempo(decorrido);
+            const minutos = decorrido / 60000;
+            const caloriasTotais = (minutos * 4) + caloriasMecanicas;
+            document.getElementById('caloriasSessao').innerHTML = caloriasTotais.toFixed(1) + '<span style="font-size:12px; color:var(--text-sec); margin-left:2px;">kcal</span>';
+        }
+
+        // --- SISTEMA DE BOTÕES ---
+        function iniciarTreino() {
+            estadoTreino = 'rodando';
+            tempoInicio = Date.now();
+            tempoAcumulado = 0;
+            caloriasMecanicas = 0;
+            exerciciosConcluidos = [];
+            salvarEstado();
+            
+            const btnCronometro = document.getElementById('btnCronometro');
+            btnCronometro.textContent = "FINALIZAR TREINO";
+            btnCronometro.className = "btn-stop";
+            btnCronometro.setAttribute("onclick", "finalizarTreino()");
+            
+            const btnPausa = document.getElementById('btnPausar');
+            btnPausa.style.display = "block";
+            btnPausa.textContent = "PAUSAR TREINO";
+            btnPausa.className = "btn-pause";
+            
+            document.getElementById('tempoDecorrido').classList.remove('pausado');
+            document.getElementById('telaBloqueio').classList.add('oculto');
+            
+            atualizarExercicios(); 
+            
+            if(intervaloCronometro) clearInterval(intervaloCronometro);
+            intervaloCronometro = setInterval(atualizarCronometro, 1000);
+        }
+
+        function finalizarTreino() {
+            if(!confirm("Tem a certeza de que deseja finalizar e zerar o treino de hoje?")) return;
+
+            estadoTreino = 'parado';
+            if(intervaloCronometro) clearInterval(intervaloCronometro);
+            intervaloCronometro = null;
+            
+            tempoInicio = 0;
+            tempoAcumulado = 0;
+            caloriasMecanicas = 0;
+            exerciciosConcluidos = [];
+            
+            localStorage.removeItem('estadoTreinoApp');
+            localStorage.removeItem('inicioTreinoApp');
+            localStorage.removeItem('tempoAcumuladoApp');
+            localStorage.removeItem('caloriasMecanicasApp');
+            localStorage.removeItem('exerciciosConcluidosApp'); 
+            
+            const btnCronometro = document.getElementById('btnCronometro');
+            btnCronometro.textContent = "INICIAR TREINO";
+            btnCronometro.className = "btn-start";
+            btnCronometro.setAttribute("onclick", "iniciarTreino()");
+            
+            document.getElementById('btnPausar').style.display = "none";
+            document.getElementById('tempoDecorrido').classList.remove('pausado');
+            document.getElementById('tempoDecorrido').textContent = "00:00:00";
+            document.getElementById('caloriasSessao').innerHTML = '0.0<span style="font-size:12px; color:var(--text-sec); margin-left:2px;">kcal</span>';
+            
+            atualizarExercicios(); 
+            document.getElementById('telaBloqueio').classList.remove('oculto');
+        }
+
+        function pausarRetomarTreino() {
+            const btnPausa = document.getElementById('btnPausar');
+            const displayTempo = document.getElementById('tempoDecorrido');
+            
+            if (estadoTreino === 'rodando') {
+                estadoTreino = 'pausado';
+                tempoAcumulado += Date.now() - tempoInicio;
+                if(intervaloCronometro) clearInterval(intervaloCronometro);
+                intervaloCronometro = null;
+                
+                salvarEstado();
+                
+                btnPausa.textContent = "RETOMAR TREINO";
+                btnPausa.className = "btn-resume";
+                displayTempo.classList.add('pausado');
+            } else if (estadoTreino === 'pausado') {
+                estadoTreino = 'rodando';
+                tempoInicio = Date.now();
+                
+                salvarEstado();
+                
+                btnPausa.textContent = "PAUSAR TREINO";
+                btnPausa.className = "btn-pause";
+                displayTempo.classList.remove('pausado');
+                
+                intervaloCronometro = setInterval(atualizarCronometro, 1000);
+            }
+            atualizarCronometro();
+        }
+
+        function verificarSessaoAtiva() {
+            const btnCronometro = document.getElementById('btnCronometro');
+            const btnPausa = document.getElementById('btnPausar');
+            const displayTempo = document.getElementById('tempoDecorrido');
+            
+            if (estadoTreino === 'rodando' || estadoTreino === 'pausado') {
+                btnCronometro.textContent = "FINALIZAR TREINO";
+                btnCronometro.className = "btn-stop";
+                btnCronometro.setAttribute("onclick", "finalizarTreino()");
+                btnPausa.style.display = "block";
+                
+                if (estadoTreino === 'rodando') {
+                    btnPausa.textContent = "PAUSAR TREINO";
+                    btnPausa.className = "btn-pause";
+                    intervaloCronometro = setInterval(atualizarCronometro, 1000);
+                } else {
+                    btnPausa.textContent = "RETOMAR TREINO";
+                    btnPausa.className = "btn-resume";
+                    displayTempo.classList.add('pausado');
+                }
+                
+                atualizarCronometro();
+                document.getElementById('telaBloqueio').classList.add('oculto');
+            } else {
+                btnCronometro.setAttribute("onclick", "iniciarTreino()");
+                document.getElementById('caloriasSessao').innerHTML = caloriasMecanicas.toFixed(1) + '<span style="font-size:12px; color:var(--text-sec); margin-left:2px;">kcal</span>';
+            }
+        }
+
+        // --- ESTRUTURA DE TREINO ---
+        const estruturaTreino = {
+            "A": ["Supino inclinado", "Crusifixo maquina", "Supino halter inclinado", "Supino maquina", "Crossover", "Crusifixo inverso", "Elevação frontal corda", "Elevação lateral", "Tríceps barra polia"],
+            "B": ["Remada curvada", "Remada maquina", "Cavalinho", "Puxada pronada", "Puxada triangulo", "Remada alta", "Rosca direta", "Bíceps scott"],
+            "C": ["Cadeira abdutora", "Cadeira adutora", "Elevação pelvica", "Cadeira extensora", "Agachamento", "Leg 45°", "Panturilha solear", "Panturilha gemeos"],
+            "A-2": ["Supino inclinado", "Crusifixo maquina", "Desenvolvimento", "Elevação frontal corda", "Elevação lateral", "Elevação lateral polia", "Crusifixo inverso", "Tríceps barra polia", "Tríceps corda"],
+            "C-2": ["Cadeira abdutora", "Cadeira adutora", "Elevação pelvica", "Mesa flexora", "Stiff", "Cadeira flexora", "Leg 45°", "Panturilha solear"]
+        };
+
+        let meuGrafico = null;
+        let numeroSerieAtual = 1;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarSessaoAtiva();
+            document.getElementById("dataTreino").value = new Date().toLocaleDateString('pt-PT');
+            
+            document.getElementById("treino").addEventListener('change', () => {
+                atualizarExercicios();
+            });
+            document.getElementById("exercicio").addEventListener('change', inicializarSeries);
+            document.getElementById("exercicioGrafico").addEventListener('change', atualizarGrafico);
+
+            atualizarExercicios();
+            preencherListaGrafico();
+            atualizarGrafico();
+        });
+
+        function atualizarExercicios() {
+            const treino = document.getElementById("treino").value;
+            const select = document.getElementById("exercicio");
+            select.innerHTML = "";
+            
+            estruturaTreino[treino].forEach(ex => {
+                let opt = new Option(ex, ex);
+                if (exerciciosConcluidos.includes(ex)) {
+                    opt.disabled = true;
+                    opt.text = ex + " ✓ (Concluído)";
+                }
+                select.add(opt);
+            });
+            
+            for (let i = 0; i < select.options.length; i++) {
+                if (!select.options[i].disabled) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+            
+            inicializarSeries();
+        }
+
+        function inicializarSeries() {
+            numeroSerieAtual = 1;
+            document.getElementById('container-series').innerHTML = '';
+            
+            const selectEx = document.getElementById("exercicio");
+            if(selectEx.options.length > 0 && selectEx.value !== "") {
+                adicionarLinhaSerie();
+            }
+        }
+
+        function adicionarLinhaSerie() {
+            const container = document.getElementById('container-series');
+            const row = document.createElement('div');
+            row.className = 'serie-row';
+            row.id = `linha-serie-${numeroSerieAtual}`;
+            
+            row.innerHTML = `
+                <div class="serie-label">Série ${numeroSerieAtual}</div>
+                <input type="number" id="rep-${numeroSerieAtual}" placeholder="Reps" min="1">
+                <input type="number" id="carga-${numeroSerieAtual}" placeholder="Kg" step="0.5" min="0">
+                <button class="btn-check" onclick="salvarSerieAtual(${numeroSerieAtual})">✓</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function salvarSerieAtual(numSerie) {
+            let exercicio = document.getElementById("exercicio").value;
+            exercicio = exercicio.replace(" ✓ (Concluído)", ""); 
+            const repeticoes = document.getElementById(`rep-${numSerie}`).value;
+            const carga = document.getElementById(`carga-${numSerie}`).value;
+            
+            if(!repeticoes || !carga) {
+                mostrarMensagem("Preencha Reps e Kg.", "#ef4444"); 
+                return;
+            }
+
+            document.getElementById(`rep-${numSerie}`).readOnly = true;
+            document.getElementById(`carga-${numSerie}`).readOnly = true;
+            
+            const row = document.getElementById(`linha-serie-${numSerie}`);
+            const btn = row.querySelector('.btn-check');
+            btn.outerHTML = `<div class="btn-done">✓</div>`;
+            row.classList.add('concluida');
+
+            const cal = parseInt(repeticoes) * parseFloat(carga) * 0.004;
+            caloriasMecanicas += cal;
+            salvarEstado();
+            
+            atualizarCronometro();
+
+            const data = new Date().toLocaleDateString('pt-PT');
+            let historico = JSON.parse(localStorage.getItem('historicoTreino')) || [];
+            
+            historico.push({ data, exercicio, series: 1, repeticoes: parseInt(repeticoes), carga: parseFloat(carga) });
+            localStorage.setItem('historicoTreino', JSON.stringify(historico));
+            
+            preencherListaGrafico();
+            atualizarGrafico();
+            
+            numeroSerieAtual++;
+            adicionarLinhaSerie();
+        }
+
+        function finalizarExercicio() {
+            const selectExercicio = document.getElementById("exercicio");
+            let exercicioAtual = selectExercicio.value;
+            exercicioAtual = exercicioAtual.replace(" ✓ (Concluído)", "");
+            
+            if (!exercicioAtual) return;
+            
+            if (!exerciciosConcluidos.includes(exercicioAtual)) {
+                exerciciosConcluidos.push(exercicioAtual);
+                salvarEstado();
+            }
+            
+            atualizarExercicios();
+            
+            const listaAposAtualizar = document.getElementById("exercicio");
+            let sobrouAlgum = false;
+            
+            for (let i = 0; i < listaAposAtualizar.options.length; i++) {
+                if (!listaAposAtualizar.options[i].disabled) {
+                    sobrouAlgum = true;
+                    break;
+                }
+            }
+            
+            if (sobrouAlgum) {
+                mostrarMensagem("Exercício concluído! Próximo aparelho...", "#3b82f6");
+            } else {
+                mostrarMensagem("Parabéns! Todos os exercícios concluídos.", "#10b981");
+                document.getElementById('container-series').innerHTML = '<div style="text-align:center; color:#10b981; font-weight:bold; padding:20px;">TREINO FINALIZADO!</div>';
+            }
+        }
+
+        function mostrarMensagem(texto, cor) {
+            const msg = document.getElementById("mensagem");
+            msg.style.color = cor;
+            msg.textContent = texto;
+            setTimeout(() => { msg.textContent = ""; }, 3000);
+        }
+
+        function preencherListaGrafico() {
+            const historico = JSON.parse(localStorage.getItem('historicoTreino')) || [];
+            const select = document.getElementById("exercicioGrafico");
+            const atual = select.value;
+            
+            const unicos = [...new Set(historico.map(item => item.exercicio))];
+            select.innerHTML = unicos.length ? "" : "<option>Sem dados</option>";
+
+            unicos.forEach(ex => {
+                let opt = new Option(ex, ex);
+                if(ex === atual) opt.selected = true;
+                select.add(opt);
+            });
+        }
+
+        function atualizarGrafico() {
+            const alvo = document.getElementById("exercicioGrafico").value;
+            if (alvo === "Sem dados") return;
+
+            const historico = JSON.parse(localStorage.getItem('historicoTreino')) || [];
+            const filtrados = historico.filter(i => i.exercicio === alvo);
+            
+            const progresso = {};
+            filtrados.forEach(i => {
+                if(!progresso[i.data] || i.carga > progresso[i.data]) progresso[i.data] = i.carga;
+            });
+
+            const ctx = document.getElementById('graficoProgresso').getContext('2d');
+            if (meuGrafico) meuGrafico.destroy();
+            
+            if (Object.keys(progresso).length === 0) return;
+
+            meuGrafico = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(progresso),
+                    datasets: [{
+                        label: `Máx. Carga (kg)`,
+                        data: Object.values(progresso),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff',
+                        tension: 0.3, 
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                    },
+                    plugins: { legend: { labels: { color: '#f8fafc', font: { size: 11 } } } }
+                }
+            });
+        }
+
+        // --- REGISTO DO SERVICE WORKER (PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .catch(err => console.error('Erro ao registar Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>
